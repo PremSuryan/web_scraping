@@ -7,13 +7,36 @@ def scrape_practo_clinics(city):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.85 Safari/537.36'
     }
-    response = requests.get(url, headers=headers)
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Check if the request was successful
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame if there's an error
+
     soup = BeautifulSoup(response.content, 'html.parser')
 
     clinics = []
-    for clinic in soup.find_all('div', class_='u-border-general--bottom'):
-        name = clinic.find('h2').text.strip()
-        address = clinic.find('div', class_='c-listing__address').text.strip()
+    # Adjust the following line based on the current HTML structure
+    clinic_divs = soup.find_all('div', class_='u-border-general--bottom')
+
+    if not clinic_divs:
+        print("No data found for Practo clinics")
+        return pd.DataFrame()  # Return an empty DataFrame if no data is found
+
+    for clinic in clinic_divs:
+        try:
+            # Update the selectors based on the current HTML structure
+            name = clinic.find('h2').text.strip()
+        except AttributeError:
+            name = "N/A"
+        
+        try:
+            address = clinic.find('div', class_='c-listing__address').text.strip()
+        except AttributeError:
+            address = "N/A"
+        
         clinics.append({'Name': name, 'Address': address})
 
     return pd.DataFrame(clinics)
@@ -80,7 +103,7 @@ if not practo_clinics.empty:
 else:
     print("No data found for Practo clinics.")
 
-city = "delhi"  # Specify a valid city for Justdial
+city = "chennai"  # Specify a valid city for Justdial
 justdial_clinics = scrape_justdial_clinics(city)
 if not justdial_clinics.empty:
     justdial_clinics.to_csv('justdial_clinics.csv', index=False)
